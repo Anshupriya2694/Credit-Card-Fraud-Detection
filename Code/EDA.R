@@ -20,13 +20,13 @@ creditcard$Class <- as.factor(creditcard$Class)
 ############### Full Dataset EDA ###################
 
 ### Distribution of Variable Amount 
-ggplot(data = creditcard, aes(Amount)) + geom_histogram(fill = "blue", alpha = 0.6) 
+x1 = ggplot(data = creditcard, aes(exp(Amount))) + geom_histogram(fill = "blue", alpha = 0.6) 
 ## Highly Skewed, performing log transformation
 
 creditcard$Amount = log(creditcard$Amount)
-ggplot(data = creditcard, aes(Amount)) + geom_histogram(fill = "blue", alpha = 0.6)
+x2 = ggplot(data = creditcard, aes(Amount)) + geom_histogram(fill = "blue", alpha = 0.6)
 ## Looks better
-
+gridExtra::grid.arrange(x1, x2)
 ### distribution of other variables
 
 p1 <- ggplot(data = creditcard, aes(V1)) + geom_histogram(fill = "blue", alpha = 0.6)
@@ -124,4 +124,112 @@ ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
                                    size = 10, hjust = 1))+
   coord_fixed()
 
+
+### Relationship with time - nothing different
+
+ggplot(data = creditcard, aes(x = Time, y = exp(Amount))) +
+  geom_line(aes(color = Class)) + scale_color_jcolors(palette = "pal2")
+
+
+#################### Splitting of the Dataset #######################
+
+creditcard_fraud <- creditcard[creditcard$Class == 1, ]
+creditcard_notFraud <- creditcard[creditcard$Class == 0, ]
+
+##################### Undersampling ###################
+
+set.seed(100)
+creditcard_new <- sample_n(creditcard_notFraud, 492)
+
+creditcard_new <- rbind(creditcard_new, creditcard_fraud)
+
+creditcard_new$Amount[which(!is.finite(creditcard_new$Amount))] <- 0
+
+ggplot(data = creditcard_new, aes(Class)) + geom_histogram(stat = "count", 
+                                                           fill = "blue", alpha = 0.6)
+creditcard_new <- creditcard_new[,-1]
+
+######################################################################
+##################### Over Sampling SMOTE ############################
+######################################################################
+
+library(DMwR)
+balanced.data <- SMOTE(Class ~., creditcard, 
+                       perc.over = 100)
+
+balanced.data$Amount[which(!is.finite(balanced.data$Amount))] <- 0
+
+ggplot(data = balanced.data, aes(Class)) + geom_histogram(stat = "count", 
+                                                          fill = "blue", alpha = 0.6)
+
+ggplot(data = balanced.data, aes(Amount)) + geom_histogram(fill = "blue", alpha = 0.6)
+
+ggplot(data = balanced.data, aes(Time, Amount)) + geom_line(col = "blue", alpha = 0.6)
+
+ggplot(data = balanced.data, aes(x = Time, y = Amount)) +
+  geom_line(aes(color = Class)) + scale_color_jcolors(palette = "pal2")
+
+####################### Independent Variable EDA ##########################
+
+creditcard_cor <- creditcard_new[1:30]
+mydata <- cbind(creditcard_cor, as.numeric(creditcard_new$Class))
+names(mydata) <- c("Time", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10",
+                   "V11", "V12", "V13", "V14",  "V15", "V16", "V17", "V18", "V19", "V20",
+                   "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "Amount",
+                   "Class" )
+
+cormat <- round(cor(mydata),2)
+library(reshape2)
+melted_cormat <- melt(cormat)
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+
+# Get lower triangle of the correlation matrix
+get_lower_tri<-function(cormat){
+  cormat[upper.tri(cormat)] <- NA
+  return(cormat)
+}
+# Get upper triangle of the correlation matrix
+get_upper_tri <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
+
+upper_tri <- get_upper_tri(cormat)
+upper_tri
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+  geom_tile(color = "white")+
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, 
+                                   size = 10, hjust = 1))+
+  coord_fixed()
+
+
+#Variables - V2, V4, V11 - high positive; V14, V12, V10 - high negative
+
+
+
+############## T-SNE Oversampling ##########
+
+library(Rtsne)
+
+train <- balanced.data[,-1]
+Labels <- train_Rtsne$Class
+train$Class <- as.factor(train$Class)
+
+colors = rainbow(length(unique(train$Class)))
+names(colors) = unique(train$Class)
+
+tsne <- Rtsne(train[,-1], dims = 2, perplexity = 40, verbose=TRUE, max_iter = 500, 
+              check_duplicates = F)
+
+
+d_tsne_2 = as.data.frame(tsne$Y)
+
+ggplot(d_tsne_2, aes(x=V1, y=V2, col = train$Class)) +  
+  geom_point(size=0.25)
 
