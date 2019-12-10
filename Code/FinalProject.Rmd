@@ -1,0 +1,100 @@
+---
+title: "Credit Card Fraud Detection"
+author: "Anshupriya Srivastava"
+date: "12/3/2019"
+output: 
+  pdf_document:
+    fig_caption: yes
+    extra_dependencies: ["graphicx", "wrapfig", "lipsum"]
+header-includes:
+  \usepackage{multirow}
+---
+
+```{r echo = F}
+library(png)
+library(grid)
+library(gridExtra)
+options(tinytex.verbose = TRUE)
+```
+## Summary
+
+
+## Introduction
+
+The development of contactless payment systems, the growth of mobile technology, and the creation of Open Banking are slowing down the use of cash. Physical cash can be anonymous and untraceable, allowing it to play a significant role in criminal activities, including bribery, tax evasion, money, counterfeiting, fraud, and terrorist financing. Cashless payments, however, leave behind tractable records, making it more challenging to conceal profits, avoid taxes, and hide transactions on the black market.
+
+It may sound appealing to do away with cash. Nonetheless, as purchases migrate online, due to the higher volume of cashless transactions and more access points for the average consumer, there would be an increased risk of crimes such as identity theft, account takeover, fraudulent transactions, and data breaches. Identity theft is one of the most common consequences of data breaches. According to Javelin, 31.7% of breach victims eventually suffered identity fraud in 2016 compared to just 2.8% of unaffected victims in 2016. The most common form of identity theft was credit card fraud (133,015 reports). 
+
+## Data
+
+The data-set comprises transactions made in September 2013 by European credit cardholders. This data-set shows the two-day transactions where 492 of 284,807 transactions were fraudulent. The data-set is highly imbalanced, with the positive category (fraud) accounting for 0.172% of all transactions.
+
+![](class_dist_barplot.png){width=50%} ![](amount_pie chart.png){width=50%}
+
+\begin{center}
+Fig 1. Class Distribution
+\end{center}
+
+Numerical variables resulting from PCA transformation are in the data-set. However, due to data privacy issues, the original features and more background information are not available. V1, V2...V28 are the key PCA components collected. The only features not transformed with PCA are 'Time' and 'Amount.' The 'Time' feature includes the seconds from the first transaction in the data-set. The 'Amount' feature is the payment amount used for cost-sensitive learning. 'Class' is the response parameter, and in case of fraud, it takes value 1 and 0 otherwise. A plot describing the distributions of all variables in the data-set is available in the appendix. The next pair of graphs explore the relationship of Amount with respect to Class and Time Respectively.
+
+![](AmountClass.png){width=50%} ![](AmountTime.png){width=50%}
+
+\begin{center}
+Fig 2. Distribution of Amount with Class and Time
+\end{center}
+
+The first plot shows that high value transactions are not fraudulent. Fraudulent transactions are of lower value. The fraudulent transactions amount have a mean of 122.21 whereas non-fraudulent transactions have a mean of 88.29. Despite having a higher mean value the maximum amount spent during a fraudulent transaction is 2125.87 as compared to non-fraudulent transactions where the highest amount spent is 25691.16. This implies that fraudulent transactions are not very evident. A consumer may not even realize that their card is being used by someone else for a prolonged period of time due to the low value of transactions. The second plot demonstrates the relationship between Time and Amount classified on Class. Once again it's quite evident that the amount value of fraudulent transactions is fairly low as compared non-fraudulent transactions. Also, there doesn't seem to be a pattern based on time. A fraudulent transaction can occur anytime. So, the variable time is being excluded from this analysis. 
+
+The graph below describes the distribution of one the known variable Amount. It is evident that amount is heavily skewed. Performing a log transformation on this variable creates a more normal distribution which will be used throughout the analysis.
+
+![](amount_dist.png){width=50%} ![](Amount_normal.png){width=50%}
+
+\begin{center}
+Fig 3. Amount Distribution
+\end{center}
+
+The following analysis is based on the two techniques used to balance the dataset. The first method used is Undersampling. Undersampling works by sampling the dominant class to reduce the number of samples. The method used here is selecting a few samples from the Fraudulent class randomly. The graph below shows an equal distribution in both classes along with a t-SNE plot. t-SNE (t-Distributed Stochastic Neighbor Embedding) is a non-linear dimension reduction algorithm used to study high-dimensional data. It maps two or more dimensions of multi-dimensional data for analysis.
+
+![](classUndersampling.png){width=50%} ![](tsne_undersampling.png){width=42.5%}
+
+\begin{center}
+Fig 4. Class Distribution after Undersampling
+\end{center}
+
+There are equal instances of fraudulent and non-fraudulent transactions. Also, clear clusters of fraudulent and non-fraudulent transactions are visible in the second graph. This suggests that the classification algorithms that will be used on the data will be able to segreggate between the classes.
+
+A similar pair of graphs is visualized for the second method used to balance the data-set - Oversampling. Oversampling artificially creates observations in the data set belonging to the class that is under represented. The technique used to oversample is SMOTE (Synthetic Minority Over-sampling Technique). SMOTE creates synthetic observations of the minority class (in this case, fraudulent transactions). SMOTE finds the k-nearest-neighbors for minority class observations and randomly chooses one of the k-nearest-neighbors and using it to create a similar, but randomly tweaked, new observations.
+
+![](classDist_Oversampled.png){width=50%} ![](tsne_SMOTE.png){width=42.5%}
+\begin{center}
+Fig 5. Class Distribution after Oversampling
+\end{center}
+
+There are equal instances of fraudulent and non-fraudulent transactions since the algorithm is tuned to created equal counts of both cases. There are a total of 1968 observations equally divided between fraudulent and non-fraudulent cases. Also, clear clusters of fraudulent and non-fraudulent transactions are visible in the second graph. This suggests that the classification algorithms that will be used on the data will be able to segreggate between the classes.
+
+## Model
+
+The undersampled and oversampled are spilt into training and testing datasets using a 3:1 ratio i.e 75% of data is used as training data and 25% as testing data. Three classification algorithms (**Logistic Regression, K-nearest-neighbour and Decision Trees**) are applied on the training sets obtained. The reason behind picking these three modeling techiques is explained below:
+
+**Logistic Regression** : The primary reason behind using this method is that it has been taught in class. Apart from that, Logistic Regression is incredibly easy to implement and very efficient to train. Because of its simplicity Logistic Regression is also a good baseline that can be use to measure the performance of other more complicated Algorithms.
+
+**K-nearest-neighbour** : KNN is a popular clustering algorithm because it is simple to implement, robust to noisy training data, and effective if training data is large. 
+
+A comparative of the three algorithms is presented below. 
+
+#### Undersampling
+
+After splitting the dataset into training and testing there are 738 observations in the training data set and 246 observations in testing data set.
+
+![](undersampling_compTable.png)
+
+```{r echo = F}
+c1 <- c("Model", "Logistic Regression", "KNN", "Decision Trees")
+c2 <- c("Accuracy", "93.09%", "94.31%", "93.09%")
+c3 <- c("Precision", "95.17%", "95.12%", "92.94%")
+c4 <- c("Recall", "91.40%", "72.67%", "91.05%")
+c5 <- c("F1 Score", "93.23%", "82.39%", "92.94%")
+df1 <- data.frame(c1, c2, c3, c4, c5)
+df1
+```
+
